@@ -31,13 +31,14 @@ $UvDir = Join-Path $RootDir "uv"
 $GeminiDir = Join-Path $RootDir "GeminiCLI"
 $NodeDir = Join-Path $RootDir "NodeJS"
 $HomeDir = Join-Path $RootDir "home"
+$DesktopDir = Join-Path $HomeDir "desktop"
 $TempDir = Join-Path $RootDir "temp"
 
 # Enable TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # Create Directories
-$Dirs = @($RootDir, $TempDir, $GeminiDir, $NodeDir)
+$Dirs = @($RootDir, $TempDir, $GeminiDir, $NodeDir, $HomeDir, $DesktopDir)
 foreach ($d in $Dirs) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null } }
 
 # Helper Function
@@ -223,6 +224,8 @@ try {
 Write-Host "`nCreating GUI Launcher Files..."
 
 if (-not (Test-Path $HomeDir)) { New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null }
+$desktopDir = $DesktopDir
+if (-not (Test-Path $desktopDir)) { New-Item -ItemType Directory -Force -Path $desktopDir | Out-Null }
 $sshDir = Join-Path $HomeDir ".ssh"
 if (-not (Test-Path $sshDir)) { New-Item -ItemType Directory -Force -Path $sshDir | Out-Null }
 

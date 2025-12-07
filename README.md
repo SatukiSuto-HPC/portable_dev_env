@@ -64,6 +64,7 @@ portable_dev_env.bat      （このファイル）
 │   ├── gemini.cmd        （ラッパースクリプト）
 │   └── node_modules\     （@google/gemini-cli本体）
 ├── home\                 （仮想HOMEディレクトリ）
+│   ├── desktop\          （生成されるデスクトップフォルダ）
 │   └── .ssh\             （SSH鍵の保存先）
 └── temp\                 （一時ファイル）
 ```
