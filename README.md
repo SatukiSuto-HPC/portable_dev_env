@@ -1,4 +1,3 @@
-
 # Portable Dev Env Installer
 
 Windows環境において、システムへのインストール（管理者権限）を一切必要とせず、ダブルクリック1つで**完全隔離されたモダンなAI・ソフトウェア開発環境**を自動構築するセットアップスクリプトです。
@@ -14,11 +13,11 @@ Windows環境において、システムへのインストール（管理者権�
 1. **プロキシ環境の自動突破（Auto-Proxy Config）**
    企業や学校などの厳しいネットワーク環境下でも、Windowsのシステムプロキシ設定（レジストリ）を自動検出し、**VS Code、npm、Gitなどの各ツールの設定ファイルへ透過的に自動適用**します。面倒な設定ファイルの手書きは不要です。
 
-2. **完全なポータブル化（システム非汚染）**
-   PCの環境変数（PATH）やレジストリを一切書き換えません。VS Codeの拡張機能から、npmのグローバルパッケージ、SSHの秘密鍵（`id_rsa`）に至るまで、すべてのデータはツールが展開されたフォルダ（仮想HOME）内に隔離されて保存されます。
+2. **完全なポータブル化（システム非汚染率100%）**
+   PCの環境変数（PATH）やレジストリを一切書き換えません。VS Codeの拡張機能から、npmのグローバルパッケージ、SSHの秘密鍵（`id_rsa`）、さらには **Googleアカウントのログインセッション（`%LOCALAPPDATA%`）** に至るまで、すべてのデータはツールが展開されたフォルダ内に完全に隔離・仮想化されて保存されます。
 
-3. **オールインワンのAI×開発環境**
-   超高速Pythonパッケージマネージャー（`uv`）、JavaScript環境（`Node.js`）、バージョン管理（`Git`）、そしてGoogleの最新AIツール（`Antigravity CLI`）をシームレスに統合。ターミナルを開いた瞬間から、全ツールのコマンドが競合することなく使用可能な状態にセットアップされます。
+3. **自由な拡張性を備えたAI×開発環境**
+   Googleの最新AIツール（`Antigravity CLI`）に加え、超高速Python環境（`uv`）、バージョン管理（`Git`）、そして**将来的なAIツールの拡張基盤としてのJavaScript環境（`Node.js / npm`）**をシームレスに統合。ターミナルを開いた瞬間から、全ツールのコマンドが競合することなく使用可能な状態にセットアップされます。
 
 ---
 
@@ -29,8 +28,8 @@ Windows環境において、システムへのインストール（管理者権�
 - **VS Code** - コードエディタ（完全ポータブルモードで動作）
 - **uv** - 超高速なPythonパッケージマネージャー（Python本体がなくても仮想環境を構築可能）
 - **Git** - バージョン管理システム（Portable版）
-- **Node.js** - JavaScript実行環境（v22.12.0 Full版）
-- **Antigravity CLI** - 旧Gemini CLIの後継となるGoogle公式AIツール（コマンド名: `agy`）
+- **Antigravity CLI** - 公式インストーラ経由で取得されるGoogleのAIツール（コマンド名: `agy`）
+- **Node.js & npm** - ユーザーが後から任意のAI系ツールやCLIを自由に追加インストールするための汎用基盤（v22.12.0 Full版）
 - **7-Zip** - アーカイブ解凍用エンジン（内部使用）
 
 ---
@@ -74,7 +73,7 @@ agy auth login
 ```
 
 3. ブラウザが自動的に開き、Googleアカウントのログイン画面が表示されます。
-4. ログインしてアクセスを許可すると、認証が完了します。
+4. ログインしてアクセスを許可すると、認証が完了します（認証情報はポータブルフォルダ内に安全に隔離保存されます）。
 
 ### 方法B: APIキーを手動で設定する
 
@@ -87,7 +86,7 @@ agy auth login
 
 ## 5. 各ツールの使用方法
 
-本環境（`Start-DevEnv.bat`）から起動したすべてのターミナルには自動的に各ツールのパスが通っています。**GUIの「Terminal」ボタンで開いた独立ターミナル**はもちろん、「VS Code」内で開いた統合ターミナル（`Ctrl + ``）の両方で、以下のコマンドがPCシステムを汚染することなくそのまま利用可能です。
+本環境（`Start-DevEnv.bat`）から起動したすべてのターミナルには自動的に各ツールのパスが通っています。**GUIの「Terminal」ボタンで開いた独立ターミナル**はもちろん、「VS Code」内で開いた統合ターミナル（`Ctrl + ``）の両方で、PCシステムを汚染することなくそのまま利用可能です。
 
 ### Antigravity CLI (`agy`)
 
@@ -107,6 +106,21 @@ agy -i
 
 
 
+### Node.js & npm (汎用AIツール拡張基盤)
+
+本環境には完全なNode.js環境が含まれています。将来的に新しいAI系のCLIツールやJSベースのエージェントを導入する際の基盤としてご活用ください。
+
+* **新規AI系ツールのインストール:**
+```cmd
+npm install -g <新しいaiツールのパッケージ名>
+
+```
+
+
+
+> **💡 npmのポータブル化に関する重要事項:**
+> 本環境の `npm` はポータブル環境専用の設定ファイル（`.npmrc`）を読み込みます。`npm install -g` を実行してツールを追加してもPC本体のグローバル環境は一切汚染されません。インストールされたツールは `NodeJS\npm-global` に安全に隔離され、即座にコマンドとして実行可能になります。
+
 ### uv (Pythonパッケージマネージャー)
 
 Pythonの仮想環境構築やパッケージ管理を超高速で行えます。
@@ -114,14 +128,6 @@ Pythonの仮想環境構築やパッケージ管理を超高速で行えます�
 * **仮想環境（.venv）の作成:** `uv venv`
 * **パッケージのインストール:** `uv pip install numpy`
 * **スクリプトの実行（環境を自動解決）:** `uv run script.py`
-
-### Node.js & npm (JavaScript開発環境)
-
-* **スクリプトの実行:** `node script.js`
-* **パッケージのインストール:** `npm install <package-name>`
-
-> **💡 npmに関する重要事項:**
-> 本環境の `npm` はポータブル環境専用の設定ファイル（`.npmrc`）を自動作成して読み込みます。`npm install -g` でグローバルインストールを行ってもPC本体は汚染されず、ポータブルフォルダ内（`AntigravityCLI\npm-global`）に安全に隔離されます。
 
 ### Git (バージョン管理)
 
@@ -144,11 +150,12 @@ portable_dev_env.bat      （初期セットアップスクリプト）
 ├── VSCode\               （VS Codeポータブル版 / data\ に全設定を隔離）
 ├── Git\                  （Git for Windows Portable）
 ├── uv\                   （uvバイナリ）
-├── NodeJS\               （Node.js実行環境）
-├── AntigravityCLI\       （Antigravity CLI + npmパッケージ群）
+├── NodeJS\               （汎用拡張基盤：Node.js実行環境）
 │   ├── .npmrc            （ポータブル専用npm・プロキシ設定）
-│   ├── npm-global\       （グローバルパッケージの隔離先）
-│   └── node_modules\     （CLI本体）
+│   └── npm-global\       （npm install -g で追加したツールの隔離先）
+├── AntigravityCLI\       （CLI設定の隔離用 仮想LOCALAPPDATA）
+│   └── agy\              （公式インストーラが配置したバイナリ群）
+│       └── bin\agy.exe   （コマンド本体）
 ├── home\                 （仮想HOMEディレクトリ）
 │   ├── desktop\          （生成されるデスクトップフォルダ）
 │   └── .ssh\             （ポータブル専用SSH鍵の隔離先）
@@ -198,5 +205,6 @@ $env:HTTPS_PROXY = "[http://user:pass@proxy.example.com:8080](http://user:pass@p
 
 * [Google AI Studio (API Key)](https://aistudio.google.com/app/apikey)
 * [Antigravity CLI 公式ドキュメント](https://antigravity.google/product/antigravity-cli)
+* [Node.js Documentation](https://nodejs.org/ja/docs/)
 * [uv Documentation](https://docs.astral.sh/uv/)
 * [VS Code Portable Mode](https://code.visualstudio.com/docs/editor/portable)
