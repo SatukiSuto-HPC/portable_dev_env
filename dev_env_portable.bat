@@ -39,9 +39,13 @@ $TempDir = Join-Path $RootDir "temp"
 # Enable TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# Create Directories (Total: 6 directories initialized)
+# Create Directories
 $Dirs = @($RootDir, $TempDir, $AntigravityDir, $NodeDir, $HomeDir, $DesktopDir)
 foreach ($d in $Dirs) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null } }
+
+# 【修正】過去の不良ラッパースクリプトが残っている場合は強制削除して競合を防止
+if (Test-Path (Join-Path $AntigravityDir "agy.cmd")) { Remove-Item (Join-Path $AntigravityDir "agy.cmd") -Force }
+if (Test-Path (Join-Path $AntigravityDir "antigravity.cmd")) { Remove-Item (Join-Path $AntigravityDir "antigravity.cmd") -Force }
 
 # Helper Function
 function Download-File {
@@ -145,7 +149,6 @@ if (-not (Test-Path (Join-Path $GitDir "cmd\git.exe"))) {
 Write-Host "`n[4/4] Checking Antigravity CLI (antigravity-cli)..." -ForegroundColor Cyan
 $NodeExe = Join-Path $NodeDir "node.exe"
 $NpmCmd = Join-Path $NodeDir "npm.cmd"
-$AgyCmd = Join-Path $AntigravityDir "agy.cmd"
 
 try {
     # Full Node.js Download
@@ -170,20 +173,18 @@ try {
     if (-not (Test-Path $AntigravityDir)) { New-Item -ItemType Directory -Path $AntigravityDir -Force | Out-Null }
     $env:Path = "$NodeDir;$env:Path"
     
-    # --- NPM Setup (With Fixes) ---
+    # --- NPM Setup ---
     if (-not (Test-Path (Join-Path $AntigravityDir "node_modules"))) {
         Write-Host " Installing Antigravity CLI Packages..."
         $npmrcPath = Join-Path $AntigravityDir ".npmrc"
         $npmCache = Join-Path $AntigravityDir "npm-cache"
         $npmPrefix = Join-Path $AntigravityDir "npm-global"
 
-        # FIX: Path separators
         $safeCache = $npmCache -replace "\\", "/"
         $safePrefix = $npmPrefix -replace "\\", "/"
         
         $npmrcContent = "prefix=$safePrefix`ncache=$safeCache"
 
-        # Proxy
         $reg = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
         if ($reg.ProxyEnable -eq 1 -and $reg.ProxyServer) {
              $proxy = if ($reg.ProxyServer -match "=") { $reg.ProxyServer.Split("=")[1] } else { $reg.ProxyServer }
@@ -194,27 +195,18 @@ try {
 
         Set-Content -Path $npmrcPath -Value $npmrcContent -Encoding UTF8
 
-        # Clean old files
         if (Test-Path (Join-Path $AntigravityDir "package.json")) { Remove-Item (Join-Path $AntigravityDir "package.json") -Force }
         if (Test-Path (Join-Path $AntigravityDir "package-lock.json")) { Remove-Item (Join-Path $AntigravityDir "package-lock.json") -Force }
 
         Start-Process -FilePath $NpmCmd -ArgumentList "init -y" -WorkingDirectory $AntigravityDir -Wait -WindowStyle Hidden
         
-        # Install Antigravity CLI package
         $pkgs = "antigravity-cli"
         Write-Host " Running npm install (this may take a minute)..."
         Start-Process -FilePath $NpmCmd -ArgumentList "install $pkgs --userconfig `"$npmrcPath`" --no-audit --no-fund" -WorkingDirectory $AntigravityDir -Wait -NoNewWindow
         
         Write-Host " Antigravity CLI installed." -ForegroundColor Green
     }
-
-    # Create wrapper shim to call the Antigravity CLI binary (agy.cmd)
-    $cmdContent = "@echo off`r`nsetlocal`r`n" +
-                  "set `"PATH=%~dp0..\NodeJS;%PATH%`"`r`n" +
-                  "call `"%~dp0node_modules\.bin\agy.cmd`" %*"
-    
-    [System.IO.File]::WriteAllText($AgyCmd, $cmdContent, [System.Text.Encoding]::ASCII)
-    Write-Host " OK (Wrapper created: agy.cmd)" -ForegroundColor Green
+    # 【修正】ラッパースクリプト作成部分を完全に削除しました。代わりに Start-DevEnv.bat で直接PATHを通します。
 
 } catch { Write-Error "Antigravity Setup Error: $_" }
 
@@ -329,7 +321,6 @@ if (`$proxyEnable -eq 1 -and -not [string]::IsNullOrEmpty(`$proxyServer)) {
 `$fnSetEnv = {
     `$k = `$txtKey.Text.Trim()
     if (`$k) {
-        # Set all possible environment variable names to ensure compatibility
         [Environment]::SetEnvironmentVariable("GEMINI_API_KEY", `$k, "Process")
         [Environment]::SetEnvironmentVariable("GOOGLE_API_KEY", `$k, "Process")
         [Environment]::SetEnvironmentVariable("ANTIGRAVITY_API_KEY", `$k, "Process")
@@ -382,7 +373,8 @@ set "ANTIGRAVITY_DIR=%~dp0AntigravityCLI"
 set "NODE_DIR=%~dp0NodeJS"
 set "HOME=%~dp0home"
 set "USERPROFILE=%~dp0home"
-set "PATH=%VSCODE_DIR%\bin;%GIT_DIR%\cmd;%UV_DIR%;%ANTIGRAVITY_DIR%;%NODE_DIR%;%PATH%"
+:: 【修正】node_modules\.bin を直接PATHに追加し、ラッパーを不要にしました
+set "PATH=%VSCODE_DIR%\bin;%GIT_DIR%\cmd;%UV_DIR%;%ANTIGRAVITY_DIR%\node_modules\.bin;%NODE_DIR%;%PATH%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "Menu.ps1"
 if %errorlevel% neq 0 pause
