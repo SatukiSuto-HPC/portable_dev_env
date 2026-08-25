@@ -30,8 +30,8 @@ $RootDir = Get-Location
 $VSCodeDir = Join-Path $RootDir "VSCode"
 $GitDir = Join-Path $RootDir "Git"
 $UvDir = Join-Path $RootDir "uv"
-$AntigravityDir = Join-Path $RootDir "AntigravityCLI"
 $NodeDir = Join-Path $RootDir "NodeJS"
+$AntigravityDir = Join-Path $RootDir "AntigravityCLI"
 $HomeDir = Join-Path $RootDir "home"
 $DesktopDir = Join-Path $HomeDir "desktop"
 $TempDir = Join-Path $RootDir "temp"
@@ -40,12 +40,8 @@ $TempDir = Join-Path $RootDir "temp"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # Create Directories
-$Dirs = @($RootDir, $TempDir, $AntigravityDir, $NodeDir, $HomeDir, $DesktopDir)
+$Dirs = @($RootDir, $TempDir, $NodeDir, $AntigravityDir, $HomeDir, $DesktopDir)
 foreach ($d in $Dirs) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null } }
-
-# 【修正】過去の不良ラッパースクリプトが残っている場合は強制削除して競合を防止
-if (Test-Path (Join-Path $AntigravityDir "agy.cmd")) { Remove-Item (Join-Path $AntigravityDir "agy.cmd") -Force }
-if (Test-Path (Join-Path $AntigravityDir "antigravity.cmd")) { Remove-Item (Join-Path $AntigravityDir "antigravity.cmd") -Force }
 
 # Helper Function
 function Download-File {
@@ -145,13 +141,11 @@ if (-not (Test-Path (Join-Path $GitDir "cmd\git.exe"))) {
     } catch { Write-Error "Git Error: $_" }
 } else { Write-Host " Skipping." -ForegroundColor Gray }
 
-# --- 4. Antigravity CLI (from npm) ---
-Write-Host "`n[4/4] Checking Antigravity CLI (antigravity-cli)..." -ForegroundColor Cyan
+# --- 4. Node.js & npm (Independent Environment) ---
+Write-Host "`n[4/4] Checking Node.js Environment..." -ForegroundColor Cyan
 $NodeExe = Join-Path $NodeDir "node.exe"
-$NpmCmd = Join-Path $NodeDir "npm.cmd"
 
 try {
-    # Full Node.js Download
     if (-not (Test-Path $NodeExe)) {
         Write-Host " Downloading Node.js (v22.12.0 Full)..."
         $nodeUrl = "https://nodejs.org/dist/v22.12.0/node-v22.12.0-win-x64.zip"
@@ -167,51 +161,60 @@ try {
         if (Test-Path $NodeDir) { Remove-Item $NodeDir -Recurse -Force }
         Move-Item -Path $extractedRoot.FullName -Destination $NodeDir -Force
         Remove-Item $nodeTemp -Recurse -Force
-        Write-Host " Node.js OK" -ForegroundColor Green
     }
 
-    if (-not (Test-Path $AntigravityDir)) { New-Item -ItemType Directory -Path $AntigravityDir -Force | Out-Null }
-    $env:Path = "$NodeDir;$env:Path"
+    # Setup Portable NPM configuration
+    $npmrcPath = Join-Path $NodeDir ".npmrc"
+    $npmCache = Join-Path $NodeDir "npm-cache"
+    $npmPrefix = Join-Path $NodeDir "npm-global"
+    $safeCache = $npmCache -replace "\\", "/"
+    $safePrefix = $npmPrefix -replace "\\", "/"
     
-    # --- NPM Setup ---
-    if (-not (Test-Path (Join-Path $AntigravityDir "node_modules"))) {
-        Write-Host " Installing Antigravity CLI Packages..."
-        $npmrcPath = Join-Path $AntigravityDir ".npmrc"
-        $npmCache = Join-Path $AntigravityDir "npm-cache"
-        $npmPrefix = Join-Path $AntigravityDir "npm-global"
+    $npmrcContent = "prefix=$safePrefix`ncache=$safeCache"
 
-        $safeCache = $npmCache -replace "\\", "/"
-        $safePrefix = $npmPrefix -replace "\\", "/"
-        
-        $npmrcContent = "prefix=$safePrefix`ncache=$safeCache"
-
-        $reg = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
-        if ($reg.ProxyEnable -eq 1 -and $reg.ProxyServer) {
-             $proxy = if ($reg.ProxyServer -match "=") { $reg.ProxyServer.Split("=")[1] } else { $reg.ProxyServer }
-             if (-not ($proxy -match "^http")) { $proxy = "http://$proxy" }
-             $npmrcContent += "`nproxy=$proxy`nhttps-proxy=$proxy"
-             Write-Host " (Proxy detected)" -ForegroundColor Gray
-        }
-
-        Set-Content -Path $npmrcPath -Value $npmrcContent -Encoding UTF8
-
-        if (Test-Path (Join-Path $AntigravityDir "package.json")) { Remove-Item (Join-Path $AntigravityDir "package.json") -Force }
-        if (Test-Path (Join-Path $AntigravityDir "package-lock.json")) { Remove-Item (Join-Path $AntigravityDir "package-lock.json") -Force }
-
-        Start-Process -FilePath $NpmCmd -ArgumentList "init -y" -WorkingDirectory $AntigravityDir -Wait -WindowStyle Hidden
-        
-        $pkgs = "antigravity-cli"
-        Write-Host " Running npm install (this may take a minute)..."
-        Start-Process -FilePath $NpmCmd -ArgumentList "install $pkgs --userconfig `"$npmrcPath`" --no-audit --no-fund" -WorkingDirectory $AntigravityDir -Wait -NoNewWindow
-        
-        Write-Host " Antigravity CLI installed." -ForegroundColor Green
+    $reg = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+    if ($reg.ProxyEnable -eq 1 -and $reg.ProxyServer) {
+         $proxy = if ($reg.ProxyServer -match "=") { $reg.ProxyServer.Split("=")[1] } else { $reg.ProxyServer }
+         if (-not ($proxy -match "^http")) { $proxy = "http://$proxy" }
+         $npmrcContent += "`nproxy=$proxy`nhttps-proxy=$proxy"
     }
-    # 【修正】ラッパースクリプト作成部分を完全に削除しました。代わりに Start-DevEnv.bat で直接PATHを通します。
+    Set-Content -Path $npmrcPath -Value $npmrcContent -Encoding UTF8
+    Write-Host " Node.js OK" -ForegroundColor Green
 
+} catch { Write-Error "Node.js Setup Error: $_" }
+
+# --- 5. Antigravity CLI (Official PowerShell Installer) ---
+Write-Host "`n[5/5] Checking Antigravity CLI (Official Installer)..." -ForegroundColor Cyan
+$AgyBinDir = Join-Path $AntigravityDir "agy\bin"
+$AgyExe = Join-Path $AgyBinDir "agy.exe"
+
+try {
+    if (-not (Test-Path $AgyExe)) {
+        Write-Host " Running official Antigravity installation script in sandboxed mode..."
+        # 【重要】ホストPCを汚染しないよう、一時的に LOCALAPPDATA をポータブルフォルダに差し替えます
+        $OrigLocal = $env:LOCALAPPDATA
+        $env:LOCALAPPDATA = $AntigravityDir
+
+        $installScript = Invoke-RestMethod -Uri "https://antigravity.google/cli/install.ps1" -UseBasicParsing
+        Invoke-Expression $installScript
+        
+        # 【重要】インストーラがホストのレジストリ(PATH)を書き換えた場合、それをクリーンアップします
+        $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+        if ($userPath -match "agy\\bin") {
+            $newPath = ($userPath -split ';' | Where-Object { $_ -notmatch "agy\\bin" }) -join ';'
+            [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
+            Write-Host " Cleaned up host registry PATH (Portability maintained)." -ForegroundColor Gray
+        }
+        
+        $env:LOCALAPPDATA = $OrigLocal
+        Write-Host " Antigravity CLI installed successfully." -ForegroundColor Green
+    } else {
+        Write-Host " Skipping." -ForegroundColor Gray
+    }
 } catch { Write-Error "Antigravity Setup Error: $_" }
 
 
-# --- 5. Create GUI Launcher Files ---
+# --- 6. Create GUI Launcher Files ---
 Write-Host "`nCreating GUI Launcher Files..."
 
 if (-not (Test-Path $HomeDir)) { New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null }
@@ -369,12 +372,14 @@ cd /d "%~dp0"
 set "VSCODE_DIR=%~dp0VSCode"
 set "GIT_DIR=%~dp0Git"
 set "UV_DIR=%~dp0uv"
-set "ANTIGRAVITY_DIR=%~dp0AntigravityCLI"
 set "NODE_DIR=%~dp0NodeJS"
+set "NPM_GLOBAL=%~dp0NodeJS\npm-global"
+set "ANTIGRAVITY_DIR=%~dp0AntigravityCLI"
 set "HOME=%~dp0home"
 set "USERPROFILE=%~dp0home"
-:: 【修正】node_modules\.bin を直接PATHに追加し、ラッパーを不要にしました
-set "PATH=%VSCODE_DIR%\bin;%GIT_DIR%\cmd;%UV_DIR%;%ANTIGRAVITY_DIR%\node_modules\.bin;%NODE_DIR%;%PATH%"
+:: 【重要】ランタイム実行時もLOCALAPPDATAを仮想化し、agy auth loginなどのセッション情報をポータブル内に隔離します
+set "LOCALAPPDATA=%ANTIGRAVITY_DIR%"
+set "PATH=%VSCODE_DIR%\bin;%GIT_DIR%\cmd;%UV_DIR%;%NODE_DIR%;%NPM_GLOBAL%;%ANTIGRAVITY_DIR%\agy\bin;%PATH%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "Menu.ps1"
 if %errorlevel% neq 0 pause
