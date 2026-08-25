@@ -4,8 +4,8 @@ setlocal
 cd /d "%~dp0"
 
 echo ========================================================
-echo Portable Dev Env Installer (Official Gemini CLI)
-echo (VSCode + uv + Git + Official Gemini CLI + Node.js)
+echo Portable Dev Env Installer (Antigravity CLI)
+echo (VSCode + uv + Git + Antigravity CLI + Node.js)
 echo ========================================================
 echo.
 echo Running PowerShell script...
@@ -24,11 +24,13 @@ goto :eof
 # PowerShell Code Section
 # ----------------------------------------------------------
 $ErrorActionPreference = "Stop"
+$ProgressPreference = 'SilentlyContinue'
+
 $RootDir = Get-Location
 $VSCodeDir = Join-Path $RootDir "VSCode"
 $GitDir = Join-Path $RootDir "Git"
 $UvDir = Join-Path $RootDir "uv"
-$GeminiDir = Join-Path $RootDir "GeminiCLI"
+$AntigravityDir = Join-Path $RootDir "AntigravityCLI"
 $NodeDir = Join-Path $RootDir "NodeJS"
 $HomeDir = Join-Path $RootDir "home"
 $DesktopDir = Join-Path $HomeDir "desktop"
@@ -37,8 +39,8 @@ $TempDir = Join-Path $RootDir "temp"
 # Enable TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# Create Directories
-$Dirs = @($RootDir, $TempDir, $GeminiDir, $NodeDir, $HomeDir, $DesktopDir)
+# Create Directories (Total: 6 directories initialized)
+$Dirs = @($RootDir, $TempDir, $AntigravityDir, $NodeDir, $HomeDir, $DesktopDir)
 foreach ($d in $Dirs) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null } }
 
 # Helper Function
@@ -139,16 +141,16 @@ if (-not (Test-Path (Join-Path $GitDir "cmd\git.exe"))) {
     } catch { Write-Error "Git Error: $_" }
 } else { Write-Host " Skipping." -ForegroundColor Gray }
 
-# --- 4. Official Gemini CLI (from npm) ---
-Write-Host "`n[4/4] Checking Official Gemini CLI (@google/gemini-cli)..." -ForegroundColor Cyan
+# --- 4. Antigravity CLI (from npm) ---
+Write-Host "`n[4/4] Checking Antigravity CLI (antigravity-cli)..." -ForegroundColor Cyan
 $NodeExe = Join-Path $NodeDir "node.exe"
 $NpmCmd = Join-Path $NodeDir "npm.cmd"
-$GeminiCmd = Join-Path $GeminiDir "gemini.cmd"
+$AntigravityCmd = Join-Path $AntigravityDir "antigravity.cmd"
 
 try {
     # Full Node.js Download
     if (-not (Test-Path $NodeExe)) {
-        Write-Host " Downloading Node.js (Full)..."
+        Write-Host " Downloading Node.js (v22.12.0 Full)..."
         $nodeUrl = "https://nodejs.org/dist/v22.12.0/node-v22.12.0-win-x64.zip"
         $nodeZip = Join-Path $TempDir "node.zip"
         Download-File -Url $nodeUrl -Dest $nodeZip
@@ -165,15 +167,15 @@ try {
         Write-Host " Node.js OK" -ForegroundColor Green
     }
 
-    if (-not (Test-Path $GeminiDir)) { New-Item -ItemType Directory -Path $GeminiDir -Force | Out-Null }
+    if (-not (Test-Path $AntigravityDir)) { New-Item -ItemType Directory -Path $AntigravityDir -Force | Out-Null }
     $env:Path = "$NodeDir;$env:Path"
     
     # --- NPM Setup (With Fixes) ---
-    if (-not (Test-Path (Join-Path $GeminiDir "node_modules"))) {
-        Write-Host " Installing Official Gemini CLI Packages..."
-        $npmrcPath = Join-Path $GeminiDir ".npmrc"
-        $npmCache = Join-Path $GeminiDir "npm-cache"
-        $npmPrefix = Join-Path $GeminiDir "npm-global"
+    if (-not (Test-Path (Join-Path $AntigravityDir "node_modules"))) {
+        Write-Host " Installing Antigravity CLI Packages..."
+        $npmrcPath = Join-Path $AntigravityDir ".npmrc"
+        $npmCache = Join-Path $AntigravityDir "npm-cache"
+        $npmPrefix = Join-Path $AntigravityDir "npm-global"
 
         # FIX: Path separators
         $safeCache = $npmCache -replace "\\", "/"
@@ -193,31 +195,29 @@ try {
         Set-Content -Path $npmrcPath -Value $npmrcContent -Encoding UTF8
 
         # Clean old files
-        if (Test-Path (Join-Path $GeminiDir "package.json")) { Remove-Item (Join-Path $GeminiDir "package.json") -Force }
-        if (Test-Path (Join-Path $GeminiDir "package-lock.json")) { Remove-Item (Join-Path $GeminiDir "package-lock.json") -Force }
-        # Remove old index.js if exists
-        if (Test-Path (Join-Path $GeminiDir "index.js")) { Remove-Item (Join-Path $GeminiDir "index.js") -Force }
+        if (Test-Path (Join-Path $AntigravityDir "package.json")) { Remove-Item (Join-Path $AntigravityDir "package.json") -Force }
+        if (Test-Path (Join-Path $AntigravityDir "package-lock.json")) { Remove-Item (Join-Path $AntigravityDir "package-lock.json") -Force }
+        if (Test-Path (Join-Path $AntigravityDir "index.js")) { Remove-Item (Join-Path $AntigravityDir "index.js") -Force }
 
-        Start-Process -FilePath $NpmCmd -ArgumentList "init -y" -WorkingDirectory $GeminiDir -Wait -WindowStyle Hidden
+        Start-Process -FilePath $NpmCmd -ArgumentList "init -y" -WorkingDirectory $AntigravityDir -Wait -WindowStyle Hidden
         
-        # Install THE OFFICIAL CLI
-        $pkgs = "@google/gemini-cli"
+        # Install Antigravity CLI package
+        $pkgs = "antigravity-cli"
         Write-Host " Running npm install (this may take a minute)..."
-        Start-Process -FilePath $NpmCmd -ArgumentList "install $pkgs --userconfig `"$npmrcPath`" --no-audit --no-fund" -WorkingDirectory $GeminiDir -Wait -NoNewWindow
+        Start-Process -FilePath $NpmCmd -ArgumentList "install $pkgs --userconfig `"$npmrcPath`" --no-audit --no-fund" -WorkingDirectory $AntigravityDir -Wait -NoNewWindow
         
-        Write-Host " Official CLI installed." -ForegroundColor Green
+        Write-Host " Antigravity CLI installed." -ForegroundColor Green
     }
 
-    # Create wrapper shim to call the official CLI binary
-    # npm install creates 'node_modules/.bin/gemini.cmd' on Windows
+    # Create wrapper shim to call the Antigravity CLI binary
     $cmdContent = "@echo off`r`nsetlocal`r`n" +
                   "set `"PATH=%~dp0..\NodeJS;%PATH%`"`r`n" +
-                  "call `"%~dp0node_modules\.bin\gemini.cmd`" %*"
+                  "call `"%~dp0node_modules\.bin\antigravity.cmd`" %*"
     
-    [System.IO.File]::WriteAllText($GeminiCmd, $cmdContent, [System.Text.Encoding]::ASCII)
+    [System.IO.File]::WriteAllText($AntigravityCmd, $cmdContent, [System.Text.Encoding]::ASCII)
     Write-Host " OK (Wrapper created)" -ForegroundColor Green
 
-} catch { Write-Error "Gemini Setup Error: $_" }
+} catch { Write-Error "Antigravity Setup Error: $_" }
 
 
 # --- 5. Create GUI Launcher Files ---
@@ -238,7 +238,7 @@ if (-not (Test-Path $idRsa)) {
     }
 }
 
-# --- File 1: Menu.ps1 (Simplified) ---
+# --- File 1: Menu.ps1 ---
 $psPath = Join-Path $RootDir "Menu.ps1"
 $psContent = @"
 Add-Type -AssemblyName System.Windows.Forms
@@ -282,11 +282,12 @@ if (`$proxyEnable -eq 1 -and -not [string]::IsNullOrEmpty(`$proxyServer)) {
 
 # --- GUI FORM ---
 `$form = New-Object System.Windows.Forms.Form
-`$form.Text = "Portable Dev Env (Official CLI)"
+`$form.Text = "Portable Dev Env (Antigravity CLI)"
 `$form.Size = New-Object System.Drawing.Size(400, 320)
 `$form.StartPosition = "CenterScreen"
 `$form.FormBorderStyle = "FixedDialog"
 `$form.MaximizeBox = `$false
+`$form.TopMost = `$true
 
 # Title
 `$lblTitle = New-Object System.Windows.Forms.Label
@@ -305,7 +306,7 @@ if (`$proxyEnable -eq 1 -and -not [string]::IsNullOrEmpty(`$proxyServer)) {
 
 # --- Group: API Settings ---
 `$grpApi = New-Object System.Windows.Forms.GroupBox
-`$grpApi.Text = "Gemini API Key"
+`$grpApi.Text = "API Key"
 `$grpApi.Location = New-Object System.Drawing.Point(20, 60)
 `$grpApi.Size = New-Object System.Drawing.Size(345, 85)
 `$form.Controls.Add(`$grpApi)
@@ -353,12 +354,12 @@ if (`$proxyEnable -eq 1 -and -not [string]::IsNullOrEmpty(`$proxyServer)) {
 `$grpTools.Controls.Add(`$btnCode)
 
 `$btnTerm = New-Object System.Windows.Forms.Button
-`$btnTerm.Text = "Terminal (gemini)"
+`$btnTerm.Text = "Terminal (antigravity)"
 `$btnTerm.Location = New-Object System.Drawing.Point(180, 30)
 `$btnTerm.Size = New-Object System.Drawing.Size(150, 40)
 `$btnTerm.Add_Click({
     & `$fnSetEnv
-    Start-Process "cmd" -ArgumentList "/k echo Portable Terminal. Type 'gemini' to start the official CLI." ; `$form.Close()
+    Start-Process "cmd" -ArgumentList "/k echo Portable Terminal. Type 'antigravity' to start the Antigravity CLI." ; `$form.Close()
 })
 `$grpTools.Controls.Add(`$btnTerm)
 
@@ -366,7 +367,7 @@ if (`$proxyEnable -eq 1 -and -not [string]::IsNullOrEmpty(`$proxyServer)) {
 "@
 [System.IO.File]::WriteAllText($psPath, $psContent, [System.Text.Encoding]::UTF8)
 
-# --- File 2: Start-DevEnv.bat (Cleaned) ---
+# --- File 2: Start-DevEnv.bat ---
 $batPath = Join-Path $RootDir "Start-DevEnv.bat"
 $batContent = @"
 @echo off
@@ -375,11 +376,11 @@ cd /d "%~dp0"
 set "VSCODE_DIR=%~dp0VSCode"
 set "GIT_DIR=%~dp0Git"
 set "UV_DIR=%~dp0uv"
-set "GEMINI_DIR=%~dp0GeminiCLI"
+set "ANTIGRAVITY_DIR=%~dp0AntigravityCLI"
 set "NODE_DIR=%~dp0NodeJS"
 set "HOME=%~dp0home"
 set "USERPROFILE=%~dp0home"
-set "PATH=%VSCODE_DIR%\bin;%GIT_DIR%\cmd;%UV_DIR%;%GEMINI_DIR%;%NODE_DIR%;%PATH%"
+set "PATH=%VSCODE_DIR%\bin;%GIT_DIR%\cmd;%UV_DIR%;%ANTIGRAVITY_DIR%;%NODE_DIR%;%PATH%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "Menu.ps1"
 if %errorlevel% neq 0 pause
