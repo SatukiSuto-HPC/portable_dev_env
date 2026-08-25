@@ -331,9 +331,12 @@ if (`$proxyEnable -eq 1 -and -not [string]::IsNullOrEmpty(`$proxyServer)) {
     `$k = `$txtKey.Text.Trim()
     if (`$k) {
         [Environment]::SetEnvironmentVariable("GEMINI_API_KEY", `$k, "Process")
+        [Environment]::SetEnvironmentVariable("GOOGLE_API_KEY", `$k, "Process")
+        [Environment]::SetEnvironmentVariable("ANTIGRAVITY_API_KEY", `$k, "Process")
         [System.IO.File]::WriteAllText(`$ApiKeyFile, `$k)
     }
 }
+
 
 # --- Group: Tools ---
 `$grpTools = New-Object System.Windows.Forms.GroupBox
