@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ========================================================
-echo Portable Dev Env Installer (Antigravity CLI)
+echo Portable Dev Env Installer (Antigravity CLI / agy)
 echo (VSCode + uv + Git + Antigravity CLI + Node.js)
 echo ========================================================
 echo.
@@ -145,7 +145,7 @@ if (-not (Test-Path (Join-Path $GitDir "cmd\git.exe"))) {
 Write-Host "`n[4/4] Checking Antigravity CLI (antigravity-cli)..." -ForegroundColor Cyan
 $NodeExe = Join-Path $NodeDir "node.exe"
 $NpmCmd = Join-Path $NodeDir "npm.cmd"
-$AntigravityCmd = Join-Path $AntigravityDir "antigravity.cmd"
+$AgyCmd = Join-Path $AntigravityDir "agy.cmd"
 
 try {
     # Full Node.js Download
@@ -197,7 +197,6 @@ try {
         # Clean old files
         if (Test-Path (Join-Path $AntigravityDir "package.json")) { Remove-Item (Join-Path $AntigravityDir "package.json") -Force }
         if (Test-Path (Join-Path $AntigravityDir "package-lock.json")) { Remove-Item (Join-Path $AntigravityDir "package-lock.json") -Force }
-        if (Test-Path (Join-Path $AntigravityDir "index.js")) { Remove-Item (Join-Path $AntigravityDir "index.js") -Force }
 
         Start-Process -FilePath $NpmCmd -ArgumentList "init -y" -WorkingDirectory $AntigravityDir -Wait -WindowStyle Hidden
         
@@ -209,13 +208,13 @@ try {
         Write-Host " Antigravity CLI installed." -ForegroundColor Green
     }
 
-    # Create wrapper shim to call the Antigravity CLI binary
+    # Create wrapper shim to call the Antigravity CLI binary (agy.cmd)
     $cmdContent = "@echo off`r`nsetlocal`r`n" +
                   "set `"PATH=%~dp0..\NodeJS;%PATH%`"`r`n" +
-                  "call `"%~dp0node_modules\.bin\antigravity.cmd`" %*"
+                  "call `"%~dp0node_modules\.bin\agy.cmd`" %*"
     
-    [System.IO.File]::WriteAllText($AntigravityCmd, $cmdContent, [System.Text.Encoding]::ASCII)
-    Write-Host " OK (Wrapper created)" -ForegroundColor Green
+    [System.IO.File]::WriteAllText($AgyCmd, $cmdContent, [System.Text.Encoding]::ASCII)
+    Write-Host " OK (Wrapper created: agy.cmd)" -ForegroundColor Green
 
 } catch { Write-Error "Antigravity Setup Error: $_" }
 
@@ -330,13 +329,13 @@ if (`$proxyEnable -eq 1 -and -not [string]::IsNullOrEmpty(`$proxyServer)) {
 `$fnSetEnv = {
     `$k = `$txtKey.Text.Trim()
     if (`$k) {
+        # Set all possible environment variable names to ensure compatibility
         [Environment]::SetEnvironmentVariable("GEMINI_API_KEY", `$k, "Process")
         [Environment]::SetEnvironmentVariable("GOOGLE_API_KEY", `$k, "Process")
         [Environment]::SetEnvironmentVariable("ANTIGRAVITY_API_KEY", `$k, "Process")
         [System.IO.File]::WriteAllText(`$ApiKeyFile, `$k)
     }
 }
-
 
 # --- Group: Tools ---
 `$grpTools = New-Object System.Windows.Forms.GroupBox
@@ -357,12 +356,12 @@ if (`$proxyEnable -eq 1 -and -not [string]::IsNullOrEmpty(`$proxyServer)) {
 `$grpTools.Controls.Add(`$btnCode)
 
 `$btnTerm = New-Object System.Windows.Forms.Button
-`$btnTerm.Text = "Terminal (antigravity)"
+`$btnTerm.Text = "Terminal (agy)"
 `$btnTerm.Location = New-Object System.Drawing.Point(180, 30)
 `$btnTerm.Size = New-Object System.Drawing.Size(150, 40)
 `$btnTerm.Add_Click({
     & `$fnSetEnv
-    Start-Process "cmd" -ArgumentList "/k echo Portable Terminal. Type 'antigravity' to start the Antigravity CLI." ; `$form.Close()
+    Start-Process "cmd" -ArgumentList "/k echo Portable Terminal. Type 'agy -h' to see commands, or 'agy -i' for interactive mode." ; `$form.Close()
 })
 `$grpTools.Controls.Add(`$btnTerm)
 
