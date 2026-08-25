@@ -8,12 +8,12 @@
 
 このバッチファイルは、以下のツールを自動的にダウンロード・展開し、統合されたポータブル開発環境を構築します：
 
-* **VS Code** - コードエディタ（ポータブル版）
-* **uv** - 高速なPythonパッケージマネージャー
-* **Git** - バージョン管理システム（ポータブル版）
-* **Node.js** - JavaScript実行環境
-* **Antigravity CLI** - `antigravity-cli`パッケージ（旧Gemini CLIに代わる最新ツール）
-* **7-Zip** - アーカイブ解凍ツール（内部使用）
+- **VS Code** - コードエディタ（ポータブル版）
+- **uv** - 高速なPythonパッケージマネージャー
+- **Git** - バージョン管理システム（ポータブル版）
+- **Node.js** - JavaScript実行環境
+- **Antigravity CLI** - `antigravity-cli`パッケージ（旧Gemini CLIの後継ツール。コマンド名は `agy`）
+- **7-Zip** - アーカイブ解凍ツール（内部使用）
 
 すべてのツールは実行フォルダ内に展開され、システムには影響を与えません。USBメモリやネットワークドライブでも動作します。
 
@@ -24,39 +24,45 @@
 ### 基本的な手順
 
 1. **バッチファイルの実行**
+
 ```
+
 portable_dev_env.bat
 
 ```
-
-
-* 右クリック → 「管理者として実行」は**不要**です
-* 初回実行時は全ツールのダウンロード・展開が行われます（数分かかります）
-
+- 右クリック → 「管理者として実行」は**不要**です
+- 初回実行時は全ツールのダウンロード・展開が行われます（数分かかります）
 
 2. **インストール完了後**
-* 同じフォルダに `Start-DevEnv.bat` と `Menu.ps1` が生成されます
-* `Start-DevEnv.bat` をダブルクリックして起動します
-
+- 同じフォルダに `Start-DevEnv.bat` と `Menu.ps1` が生成されます
+- `Start-DevEnv.bat` をダブルクリックして起動します
 
 3. **GUIメニューの操作**
-* **API Key** 欄に、Google AI StudioのAPIキーを入力
-* `[Get API Key]` ボタンで取得ページを開けます
-* `VS Code` ボタン：VS Codeを起動
-* `Terminal (antigravity)` ボタン：コマンドプロンプトを開く
+- **API Key** 欄に、Google AI StudioのAPIキーを入力
+- `[Get API Key]` ボタンで取得ページを開けます
+- `VS Code` ボタン：VS Codeを起動
+- `Terminal (agy)` ボタン：コマンドプロンプトを開く
 
-
-4. **Antigravity CLIの使用**
-* ターミナルで以下のコマンドが使用可能：
-
-
+4. **Antigravity CLI (`agy`) の使用**
+- ターミナルで以下のコマンドが使用可能：
 ```cmd
-antigravity --help
-antigravity "Tell me a joke"
+agy --help
 
 ```
 
+* **単発のプロンプト送信:** `-p` または `--print` オプションを使用します。
 
+```cmd
+agy -p "こんにちは、API通信のテストです。"
+
+```
+
+* **対話モードの起動:** `-i` オプションを使用します。
+
+```cmd
+agy -i
+
+```
 
 ### フォルダ構成
 
@@ -72,7 +78,7 @@ portable_dev_env.bat      （このファイル）
 ├── uv\                   （uvバイナリ）
 ├── NodeJS\               （Node.js実行環境）
 ├── AntigravityCLI\       （Antigravity CLI + npm packages）
-│   ├── antigravity.cmd   （ラッパースクリプト）
+│   ├── agy.cmd           （ラッパースクリプト）
 │   └── node_modules\     （antigravity-cli本体）
 ├── home\                 （仮想HOMEディレクトリ）
 │   ├── desktop\          （生成されるデスクトップフォルダ）
@@ -137,8 +143,8 @@ portable_dev_env.bat      （このファイル）
 * npm経由でインストール
 
 
-* `antigravity.cmd` ラッパーで `node_modules\.bin\antigravity.cmd` を呼び出し
-* 環境変数 `GEMINI_API_KEY` を自動設定
+* `agy.cmd` ラッパーで `node_modules\.bin\agy.cmd` を呼び出し
+* 旧仕様との互換性を確保するため、環境変数 `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `ANTIGRAVITY_API_KEY` の3つにAPIキーを同時に自動設定します。
 
 #### 3.4. GUIランチャーの生成
 
@@ -146,7 +152,7 @@ portable_dev_env.bat      （このファイル）
 
 * **API Key管理**
 * `gemini_key.txt` に保存
-* 起動時に環境変数 `GEMINI_API_KEY` に自動設定
+* 起動時に3種類の環境変数に自動設定して認証エラーを防止
 
 
 * **プロキシ自動検出**
@@ -166,51 +172,29 @@ portable_dev_env.bat      （このファイル）
 * `HOME` と `USERPROFILE` を仮想化
 * `Menu.ps1` を呼び出し
 
-### 主要な機能
-
-#### プロキシ対応
-
-* レジストリから自動検出（`HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings`）
-* npm、VS Code、Git、curlに設定を適用
-
-#### エラーハンドリング
-
-* `$ErrorActionPreference = "Stop"` で致命的エラーを即座に停止
-* curl/Invoke-WebRequestの両方に対応
-
-#### ダウンロード最適化
-
-* GitHub API経由で最新リリースを取得
-* 既存ファイルがある場合はスキップ
-* curl（Gitに含まれる）を優先使用
-
 ### トラブルシューティング
 
 #### Q1. ダウンロードが失敗する
 
 * **A1**：プロキシ環境の場合、初回はプロキシ設定前なので失敗する可能性があります
-* 手動でプロキシを設定：
+* 手動でプロキシを設定し、その後バッチファイルを再実行してください。
 ```powershell
-$env:HTTP_PROXY = "http://proxy.example.com:8080"
-$env:HTTPS_PROXY = "http://proxy.example.com:8080"
+$env:HTTP_PROXY = "[http://proxy.example.com:8080](http://proxy.example.com:8080)"
+$env:HTTPS_PROXY = "[http://proxy.example.com:8080](http://proxy.example.com:8080)"
 
 ```
 
 
-* その後バッチファイルを再実行
 
 
 
-#### Q2. antigravityコマンドが動かない
+#### Q2. agyコマンドで「unexpected argument」エラーが出る
 
-* **A2**：APIキーが未設定の可能性
+* **A2**：文字列を直接渡すことはできません。必ず `-p` オプションを付けて実行してください。
 ```cmd
-echo %GEMINI_API_KEY%
+agy -p "プロンプト文字列"
 
 ```
-
-
-* 空の場合は `Menu.ps1` で設定
 
 
 
@@ -219,7 +203,7 @@ echo %GEMINI_API_KEY%
 * **A3**：`VSCode\data\user-data\User\settings.json` を手動編集
 ```json
 {
-  "http.proxy": "http://proxy.example.com:8080"
+  "http.proxy": "[http://proxy.example.com:8080](http://proxy.example.com:8080)"
 }
 
 ```
@@ -243,49 +227,11 @@ Git\usr\bin\ssh-keygen.exe -t rsa -b 2048 -f home\.ssh\id_rsa
 * 環境を共有する場合は削除してください
 
 
-2. **プロキシ認証**
-* 認証付きプロキシは手動設定が必要です
-* `.npmrc` に以下を追加：
-```
-proxy=http://user:pass@proxy:8080
-https-proxy=http://user:pass@proxy:8080
-
-```
-
-
-
-
-3. **実行ポリシー**
+2. **実行ポリシー**
 * `-ExecutionPolicy Bypass` を使用
 * 企業環境では管理者に確認してください
 
 
-
-### カスタマイズ方法
-
-#### Node.jsのバージョン変更
-
-```powershell
-$nodeUrl = "https://nodejs.org/dist/v20.11.0/node-v20.11.0-win-x64.zip"
-
-```
-
-#### 追加のnpmパッケージ
-
-```cmd
-cd AntigravityCLI
-..\NodeJS\npm install <package-name>
-
-```
-
-#### VS Code拡張機能の自動インストール
-
-`Menu.ps1` の起動前に追加：
-
-```powershell
-& "$VSCodeDir\bin\code.cmd" --install-extension ms-python.python
-
-```
 
 ---
 
@@ -295,7 +241,11 @@ cd AntigravityCLI
 
 ## 関連リンク
 
-* [Google Gemini API](https://ai.google.dev/)
+* [Google AI Studio](https://aistudio.google.com/app/apikey)
 * [Antigravity CLI 公式ドキュメント](https://antigravity.google/product/antigravity-cli)
 * [uv Documentation](https://docs.astral.sh/uv/)
 * [VS Code Portable Mode](https://code.visualstudio.com/docs/editor/portable)
+
+```
+
+```
